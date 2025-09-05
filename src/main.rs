@@ -1,12 +1,13 @@
 mod bom_items;
+mod digikey;
 
 use bom_items::{BomItem, match_bom};
 use clap::{Parser, error::Result};
+use digikey::digikey_keyword_search;
 use std::error::Error;
 use std::fs;
 
-// # Pass 1: Simple logic-based parsing
-// - Consolidate matching BOM part items
+// - Gemini calls
 // - Turn into search queries
 // - Search on Digikey
 // - Store Digikey results as part items
@@ -20,14 +21,22 @@ struct Args {
     filename: String,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let contents = fs::read_to_string(args.filename).expect("Unable to read BOM CSV file.");
 
-    let bom_items = match_bom(contents);
-    for bom_item in bom_items {
-        println!("{:?}", bom_item);
+    let bom = match_bom(contents);
+    for bom_item in bom.included_items() {
+        // println!("{:?}", bom_item);
+        println!("{:?}", bom_item.search_keywords())
     }
+
+    // let result = digikey_keyword_search("10k 0402".to_string()).await;
+
+    // if let Ok(response) = result {
+    // println!("{:?}", response);
+    // }
 
     Ok(())
 }
