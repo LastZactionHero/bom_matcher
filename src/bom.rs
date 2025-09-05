@@ -7,12 +7,14 @@ pub struct Bom {
 }
 
 impl Bom {
-    pub fn included_items(&self) -> Vec<BomItem> {
-        self.items
+    pub fn from_included_items(&self) -> Bom {
+        let items = self
+            .items
             .iter()
             .filter(|&item| item.exclude_from_bom.is_empty() && item.exclude_from_board.is_empty())
             .cloned()
-            .collect()
+            .collect();
+        Bom { items }
     }
 }
 
@@ -41,9 +43,26 @@ impl BomItem {
         keywords.push(format!("{} {}", self.value, self.footprint));
         keywords
     }
+
+    pub fn reference_string(&self) -> String {
+        let mut parts = vec![];
+
+        parts.push(format!(
+            "ID: {}",
+            self.internal_id.expect("BOM Item expects an internal_id")
+        ));
+        if !self.value.is_empty() {
+            parts.push(format!("Value: {}", self.value));
+        }
+        if !self.footprint.is_empty() {
+            parts.push(format!("Footprint: {}", self.footprint))
+        }
+
+        parts.join(" ")
+    }
 }
 
-pub fn match_bom(contents: String) -> Bom {
+pub fn parse_bom(contents: String) -> Bom {
     let mut rdr = ReaderBuilder::new().from_reader(contents.as_bytes());
 
     let mut items = Vec::new();
@@ -51,6 +70,7 @@ pub fn match_bom(contents: String) -> Bom {
     for item_result in rdr.deserialize::<BomItem>() {
         let mut item = item_result.expect("Failed to deserialize row");
         item.internal_id = Option::Some(internal_id);
+        internal_id += 1;
         items.push(item);
     }
     Bom { items }
