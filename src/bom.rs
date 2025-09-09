@@ -62,7 +62,7 @@ impl BomItem {
     }
 }
 
-pub fn parse_bom(contents: String) -> Bom {
+pub fn parse_bom(contents: &String) -> Bom {
     let mut rdr = ReaderBuilder::new().from_reader(contents.as_bytes());
 
     let mut items = Vec::new();

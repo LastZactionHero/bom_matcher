@@ -1,7 +1,8 @@
 use std::error::Error;
 
+use anyhow::Result;
+use anyhow::anyhow;
 use dotenv::dotenv;
-use reqwest;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -63,7 +64,7 @@ struct PromptTokenDetails {
     token_count: u32,
 }
 
-pub async fn generate_content(prompt: String) -> Result<String, Box<dyn Error>> {
+pub async fn generate_content(prompt: String) -> Result<String> {
     dotenv().ok();
 
     let api_key = std::env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY must be set");
@@ -86,7 +87,7 @@ pub async fn generate_content(prompt: String) -> Result<String, Box<dyn Error>> 
         .await?;
     if !response.status().is_success() {
         let error_text = response.text().await?;
-        return Err(format!("Gemini generate content request failed: {}", error_text).into());
+        return Err(anyhow!("Gemini generate content request failed: {}", error_text).into());
     }
 
     let generate_response: GeminiResponse = response.json::<GeminiResponse>().await?;

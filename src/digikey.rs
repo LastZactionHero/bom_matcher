@@ -1,7 +1,7 @@
+use anyhow::{Result, anyhow};
 use dotenv::dotenv;
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::{fmt::Debug, str::FromStr};
 
 // Represents the response from the OAuth2 token endpoint.
@@ -32,7 +32,7 @@ pub struct SearchResponse {
     // but you could create structs for them here.
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Product {
     pub description: Description,
@@ -52,21 +52,21 @@ pub struct Product {
     pub other_names: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Description {
     pub product_description: String,
     pub detailed_description: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Manufacturer {
     pub id: u32,
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ProductVariation {
     pub digi_key_product_number: String,
@@ -76,14 +76,14 @@ pub struct ProductVariation {
     pub minimum_order_quantity: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct PackageType {
     pub id: u32,
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct StandardPricing {
     pub break_quantity: u32,
@@ -91,14 +91,14 @@ pub struct StandardPricing {
     pub total_price: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ProductStatus {
     pub id: u32,
     pub status: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Parameter {
     pub parameter_id: u32,
@@ -106,7 +106,7 @@ pub struct Parameter {
     pub value_text: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Category {
     pub category_id: u32,
@@ -114,14 +114,14 @@ pub struct Category {
     pub child_categories: Vec<Category>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Series {
     pub id: u32,
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Classifications {
     pub reach_status: String,
@@ -134,7 +134,7 @@ pub struct Classifications {
     pub htsus_code: String,
 }
 
-async fn get_access_token(client_keys: &ClientKeys) -> Result<TokenResponse, Box<dyn Error>> {
+async fn get_access_token(client_keys: &ClientKeys) -> Result<TokenResponse> {
     let client = Client::new();
 
     let token_url = "https://api.digikey.com/v1/oauth2/token";
@@ -146,7 +146,7 @@ async fn get_access_token(client_keys: &ClientKeys) -> Result<TokenResponse, Box
     let response = client.post(token_url).form(&params).send().await?;
     if !response.status().is_success() {
         let error_text = response.text().await?;
-        return Err(format!("Digikey access token fetch failed: {}", error_text).into());
+        return Err(anyhow!("Digikey access token fetch failed: {}", error_text).into());
     }
 
     let token_response: TokenResponse = response.json::<TokenResponse>().await?;
@@ -172,7 +172,7 @@ fn get_client_keys() -> ClientKeys {
     }
 }
 
-pub async fn digikey_keyword_search(query: String) -> Result<SearchResponse, Box<dyn Error>> {
+pub async fn digikey_keyword_search(query: &String) -> Result<SearchResponse> {
     let client_keys = get_client_keys();
     let access_token_response = get_access_token(&client_keys).await?;
 
@@ -198,7 +198,7 @@ pub async fn digikey_keyword_search(query: String) -> Result<SearchResponse, Box
         .await?;
     if !response.status().is_success() {
         let error_text = response.text().await?;
-        return Err(format!("Search request failed: {}", error_text).into());
+        return Err(anyhow!("Search request failed: {}", error_text).into());
     }
 
     let search_response: SearchResponse = response.json::<SearchResponse>().await?;
